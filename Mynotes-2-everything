@@ -1,0 +1,28 @@
+✅ CORS hota kya hai?
+CORS ek security feature hai jo web browsers implement karte hain. Yeh prevent karta hai ki ek website doosri website ke backend se bina permission ke request na bhej sake.
+
+Example lo:
+
+Backend run ho raha hai → http://localhost:8000
+Frontend run ho raha hai → http://localhost:3000
+Agar frontend backend se request karega, toh browser CORS error de sakta hai kyunki dono different origins hain.
+
+
+first set port -in .env
+and mongodb uri 
+database name  why becuse ik jgha rahega  or bad ma edit easily hojayega 
+and install dotenv 
+then crete index file 
+then crete db file 
+
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon -r dotenv/config  --experimental-json-modules src/index.js"
+  },
+
+
+
+----------------------------------------------------------------------------------
+monggose 
+Mongoose ek Object Data Modeling (ODM) library hai jo MongoDB ke saath kaam karti hai. Jab hum MongoDB ko directly use karte hain, toh humein manual queries likhni padti hain aur data validation bhi manually handle karna padta hai. Mongoose isse simple aur efficient bana deta hai.
+-----------------------------------------------
