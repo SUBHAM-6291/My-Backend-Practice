@@ -2,16 +2,18 @@ import { asyncHandler } from "../utils/asynchandler.js";
 import { Router } from "express";  
 import { ApiError } from '../utils/ApiError.js';  
 import { User } from "../models/User.Model.js";  
-import { uploadToCloudinary } from '../utils/cloudinary.js';  
+import { uploadOnCloudinary } from '../Service/Cloudinary.js';  
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const router = Router();  
 
 const registerUser = asyncHandler(async (req, res) => {  
-  const { fullname, username, email, password } = req.body;
-  console.log("email", email);
+  const { fullName, username, email, password } = req.body;
 
-  if ([fullname, email, username, password].some((field) => field?.trim() === "")) {
+  console.log("email:", email);
+  console.log("Uploaded Files:", req.files);
+
+  if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -23,20 +25,24 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User or email already exists");
   }
 
-  const avatarLocalPath = req.files?.avatar?.[0]?.path;  
-  const coverImageLocalPath = req.files?.coverImage?.[0]?.path; 
+  const avatarLocalPath = req.files?.avatar?.[0]?.path || null;  
+  const coverImageLocalPath = req.files?.coverImage?.[0]?.path || null; 
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar file is required");
   }
 
-  // ✅ Cloudinary me images upload kar rahe hain
-  const avatar = await uploadToCloudinary(avatarLocalPath);  
-  const coverImage = coverImageLocalPath ? await uploadToCloudinary(coverImageLocalPath) : null; 
+  let avatar, coverImage;
+  try {
+    avatar = avatarLocalPath ? await uploadOnCloudinary(avatarLocalPath) : null;
+    coverImage = coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath) : null;
+  } catch (error) {
+    throw new ApiError(500, "Failed to upload images to Cloudinary");
+  }
 
   const user = await User.create({
-    fullname,
-    avatar: avatar.url,
+    fullName, // Fixed field name
+    avatar: avatar?.url || "",
     coverImage: coverImage?.url || "",
     email,
     password,
@@ -52,7 +58,6 @@ const registerUser = asyncHandler(async (req, res) => {
   return res.status(201).json(new ApiResponse(200, createdUser, "User registered successfully"));
 });
 
-// ✅ Register route define kar rahe hain
 router.route("/register").post(registerUser);
 
-export { registerUser, router };
+export { registerUser, router };  

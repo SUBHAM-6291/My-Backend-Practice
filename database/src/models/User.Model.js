@@ -1,84 +1,84 @@
-import mongoose, { Schema } from "mongoose"; // Import Mongoose and Schema for defining MongoDB models
-import jwt from "jsonwebtoken"; // Import JSON Web Token for authentication
-import bcrypt from "bcryptjs"; // Import bcrypt for password hashing
+import mongoose, { Schema } from "mongoose"; 
+import jwt from "jsonwebtoken";  
+import bcrypt from "bcryptjs";  
 
-
-// Define User Schema
+// ✅ Define User Schema
 const userSchema = new Schema({
     username: {
-        type: String, // Data type is String
-        required: true, // Username is required
-        unique: true, // Must be unique
-        trim: true, // Remove extra spaces
-        index: true // Create an index for faster search
+        type: String, 
+        required: true,
+        unique: true,
+        trim: true,
+        lowercase: true, // ✅ Ensures usernames are case-insensitive
+        index: true
     },
     email: {
         type: String,
         required: true,
-        unique: true, // Each email should be unique
-        lowercase: true, // Convert email to lowercase
-        trim: true // Remove extra spaces
+        unique: true, 
+        lowercase: true, 
+        trim: true
     },
     fullName: {
         type: String,
         required: true,
         trim: true,
-        index: true // Indexed for efficient search
+        index: true
     },
     avatar: {
-        type: String, // Stores the profile picture URL (Cloudinary)
-        default: "" // Default is an empty string if not provided
+        type: String, 
+        default: "" 
     },
     coverImage: {
-        type: String // Stores the cover image URL
+        type: String 
     },
-    watchHistory: {
-        type: Schema.Types.ObjectId, // Stores reference to a Video document
-        ref: "Video" // This refers to the Video model in MongoDB
-    },
+    watchHistory: [{  
+        type: Schema.Types.ObjectId,  
+        ref: "Video" 
+    }],
     password: {
         type: String,
-        required: [true, "Password is required"] // Custom error message if missing
+        required: [true, "Password is required"]
     },
     refreshToken: {
-        type: String // Stores the refresh token for authentication
+        type: String 
     }
-}, { timestamps: true }); // Automatically adds `createdAt` and `updatedAt` timestamps
+}, { timestamps: true });
 
-// Middleware to hash password before saving user data
+// ✅ Middleware to hash password before saving
 userSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next(); // If password is not modified, move to next middleware
-    this.password = await bcrypt.hash(this.password, 10); // Hash password with bcrypt (salt rounds: 10)
-    next(); // Continue execution
+    if (!this.isModified("password")) return next();
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
 });
 
-// Method to check if the entered password matches the stored hashed password
+// ✅ Method to check if password is correct
 userSchema.methods.isPasswordCorrect = async function (password) {
-    return await bcrypt.compare(password, this.password); // Compare entered password with hashed password
+    return await bcrypt.compare(password, this.password);
 };
 
-// Method to generate an Access Token (JWT) for user authentication
+// ✅ Method to generate Access Token
 userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
-            _id: this._id, // User ID
-            email: this.email, // User email
-            username: this.username, // Username
-            fullName: this.fullName // Full name
+            _id: this._id,
+            email: this.email,
+            username: this.username,
+            fullName: this.fullName
         },
-        process.env.ACCESS_TOKEN_SECRET, // Secret key from .env file
-        { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1d" } // Token expiration time
+        process.env.ACCESS_TOKEN_SECRET, 
+        { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1d" }
     );
 };
 
-// Method to generate a Refresh Token (JWT) for renewing authentication sessions
+// ✅ Method to generate Refresh Token
 userSchema.methods.generateRefreshToken = function () {
     return jwt.sign(
-        { _id: this._id }, // Only User ID is included in refresh token
-        process.env.REFRESH_TOKEN_SECRET, // Secret key from .env file
-        { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "10d" } // Expiry time (default: 10 days)
+        { _id: this._id },
+        process.env.REFRESH_TOKEN_SECRET, 
+        { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "10d" }
     );
 };
 
-// Create a Mongoose model named "User" based on the schema
+// ✅ Create Mongoose model
 export const User = mongoose.model("User", userSchema);
