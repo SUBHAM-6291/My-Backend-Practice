@@ -36,9 +36,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  const existedUser = await User.findOne({
-    $or: [{ username }, { email }]
-  });
+  const existedUser = await User.findOne({ $or: [{ username }, { email }] });
 
   if (existedUser) {
     throw new ApiError(409, "User or email already exists");
@@ -53,7 +51,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   let avatar, coverImage;
   try {
-    avatar = avatarLocalPath ? await uploadOnCloudinary(avatarLocalPath) : null;
+    avatar = await uploadOnCloudinary(avatarLocalPath);
     coverImage = coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath) : null;
   } catch (error) {
     throw new ApiError(500, "Failed to upload images to Cloudinary");
@@ -81,8 +79,8 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
 
-  if (!username || !email || !password) {
-    throw new ApiError(400, "Username, email, and password are required");
+  if ((!email && !username) || !password) {
+    throw new ApiError(400, "Email or username and password are required");
   }
 
   const user = await User.findOne({ $or: [{ username }, { email }] });
@@ -100,7 +98,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
   };
 
   const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
@@ -114,15 +112,11 @@ const loginUser = asyncHandler(async (req, res) => {
 
 // ********** Logout User Route **********
 const logoutUser = asyncHandler(async (req, res) => {
-  await User.findByIdAndUpdate(
-    req.user._id,
-    { $set: { refreshToken: undefined } },
-    { new: true }
-  );
+  await User.findByIdAndUpdate(req.user._id, { $set: { refreshToken: undefined } }, { new: true });
 
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
   };
 
   return res
@@ -148,11 +142,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(decodedToken?._id);
-  if (!user) {
-    throw new ApiError(401, "User not found");
-  }
-
-  if (incomingRefreshToken !== user.refreshToken) {
+  if (!user || incomingRefreshToken !== user.refreshToken) {
     throw new ApiError(401, "Refresh token is expired or has already been used");
   }
 
@@ -160,7 +150,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
   };
 
   return res
@@ -170,6 +160,44 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, { accessToken, refreshToken }, "Access token refreshed successfully"));
 });
 
+// ********** Get Current User Route **********
+const getCurrentUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user?._id).select("-password -refreshToken");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(new ApiResponse(200, user, "User data retrieved successfully"));
+});
+
+// ********** Change Current Password Route **********
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword, confirmPassword } = req.body;
+
+  if (newPassword !== confirmPassword) {
+    throw new ApiError(400, "Passwords do not match");
+  }
+
+  const user = await User.findById(req.user?.id);
+  if (!user || !(await user.isPasswordCorrect(oldPassword))) {
+    throw new ApiError(400, "Invalid old password");
+  }
+
+  user.password = newPassword;
+  user.refreshToken = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
 // ********** Export Routes **********
-export { registerUser, loginUser, logoutUser, refreshAccessToken, router };
- 
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  getCurrentUser,
+  changeCurrentPassword,
+  router,
+};
