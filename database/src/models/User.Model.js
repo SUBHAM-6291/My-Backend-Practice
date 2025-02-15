@@ -39,8 +39,13 @@ const userSchema = new Schema({
     password: {
         type: String,
         required: [true, "Password is required"]
+
+
     },
-    refreshToken: {
+
+    //har kisko file uplod nhi kiya ja sajta refersh database store refersh token data base same mandwali karlenge 
+
+    refreshToken: {//long term j
         type: String 
     }
 }, { timestamps: true });
