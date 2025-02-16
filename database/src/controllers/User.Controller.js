@@ -191,6 +191,61 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"));
 });
 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is missing");
+  }
+
+  const channel = await user.aggregate([
+    {
+      $match: {
+        username: username.toLowerCase()
+      }
+    },
+    {
+      $lookup: {
+        from: "subscription",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribers"
+      }
+    },
+    {
+      $addFields: {
+        subscribersCount: { $size: "$subscribers" },
+        channelSubscriberCount: { $size: "$subscribersTo" },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false
+          }
+        }
+      }
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelSubscriberCount: 1,
+        avatar: 1,
+        coverImage: 1
+      }
+    }
+  ]);
+
+  if(!channel?.length){
+    throw new ApiError(404,"chanel does not exits ")
+  }
+return res.status(200)
+.json(new ApiError(200,chanel[0],"user chanel fetched sucesfully"))
+  res.json(channel);
+});
+
+
 // ********** Export Routes **********
 export {
   registerUser,
@@ -200,4 +255,5 @@ export {
   getCurrentUser,
   changeCurrentPassword,
   router,
+  getuserchanelprofile
 };
