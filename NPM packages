@@ -1,0 +1,16 @@
+# NPM Packages to Install
+
+1. **express**: A web framework for Node.js to build web applications and APIs.
+2. **mongoose**: An ODM (Object Data Modeling) library for MongoDB and Node.js.
+3. **jsonwebtoken**: To handle JSON Web Tokens (JWT) for authentication.
+4. **bcryptjs**: To hash passwords for secure storage.
+5. **cookie-parser**: To parse cookies attached to the client request object.
+6. **dotenv**: To load environment variables from a `.env` file into `process.env`.
+7. **multer**: To handle multipart/form-data, which is primarily used for uploading files.
+8. **cloudinary**: To upload images to Cloudinary.
+9. **express-async-handler**: To handle exceptions inside async express routes and pass them to the express error handlers.
+10. **cors**: To enable Cross-Origin Resource Sharing (CORS).
+
+# Development Dependencies
+
+1. **nodemon**: To automatically restart the server when file changes in the directory are detected.
